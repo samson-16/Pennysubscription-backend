@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import User from "../models/user.model.js";
+// import User from "../models/user.model.js";
 import { JWT_SECRET, JWT_EXPIRES_IN } from "../config/env.js";
-
+import User from "../models/user.model.js";
 
 export const signUp = async (req, res, next) => {
   const session = await mongoose.startSession();
@@ -19,14 +19,16 @@ export const signUp = async (req, res, next) => {
     }
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-  
 
-    const newUser = await User.create([{ name, email, password: hashedPassword }], { session });
+    const newUser = await User.create(
+      [{ name, email, password: hashedPassword }],
+      { session },
+    );
 
     const token = jwt.sign(
-      { userId: newUser[0]._id, email: newUser.email },
+      { userId: newUser[0]._id, email: newUser[0].email },
       JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
+      { expiresIn: JWT_EXPIRES_IN },
     );
 
     res.status(201).send({
@@ -46,8 +48,49 @@ export const signUp = async (req, res, next) => {
   }
 };
 
-export const signIn = (req, res) => {
-  res.send({ message: "sign in page" });
+export const signIn = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      const error = new Error("Email and password are required");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      const error = new Error("Invalid email or password");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      const error = new Error("Invalid email or password");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    const token = jwt.sign(
+      { userId: user._id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN },
+    );
+
+    const userData = user.toObject();
+    delete userData.password;
+
+    res.status(200).send({
+      message: "Signed in successfully",
+      data: {
+        user: userData,
+        token,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 export const signOut = (req, res) => {
   res.send({ message: "sign out page" });

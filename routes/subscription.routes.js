@@ -10,4 +10,4 @@ subscriptionRouter.delete('/', (req, res)=>res.send({title: "Delete subscription
 subscriptionRouter.get('/user/:id', (req, res)=>res.send({title: "Get user subscriptions"}))
 subscriptionRouter.put('/:id/cancel', (req, res)=>res.send({title: "Get user subscriptions"}))
 
-export default subscriptionRouter
+export default subscriptionRouterda
