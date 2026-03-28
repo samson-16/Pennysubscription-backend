@@ -40,38 +40,50 @@ startDate:{
         message: 'Start date cannot be in the future'
     }
 },
-renewalDate:{
-    type: Date,
-    required:true,
-    validate:{
-        validator: (value)=>value > this.startDate,
-        message: 'Renewal date must be after start date'
-    }},
+renewalDate: {
+  type: Date,
+  required: true,
+  validate: {
+    validator: function (value) {
+      return value > this.startDate;
+    },
+    message: "Renewal date must be after start date"
+  }
+},
 user:{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
+    required: false,
     index: true
-}  
-}, {timestamps: true});
+  }, 
+  Status:{
+    type: String,
+    enum: ["active", "cancelled", "expired"],
+    default: "active"
+  }
+},
+{timestamps: true});
 
+subscriptionSchema.pre("save", function (next) {
+  const renewalPeriods = {
+    daily: 1,
+    weekly: 7,
+    monthly: 30,
+    yearly: 365
+  };
 
-subscriptionSchema.pre('save', function(next){
-    if(!this.renewalDate){
-        const renewalPeriods = {
-            daily: 1,
-            weekly: 7,
-            monthly: 30,
-            yearly: 365
-        };
-    }
+  if (!this.renewalDate) {
     this.renewalDate = new Date(this.startDate);
-    this.renewalDate.setDate(this.renewalDate.getDate() + renewalPeriods[this.frequency]); 
- 
-    if (this.renewalDate <= this.startDate){
-       this.status = 'expired';
-    }
-    next();
+    this.renewalDate.setDate(
+      this.renewalDate.getDate() + renewalPeriods[this.frequency]
+    );
+  }
+
+  if (this.renewalDate <= this.startDate) {
+    this.status = "expired";
+  }
+
+  next();
 });
 const Subscription = mongoose.model("Subscription", subscriptionSchema);
 
