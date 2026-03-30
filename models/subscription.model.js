@@ -56,7 +56,7 @@ user:{
     required: false,
     index: true
   }, 
-  Status:{
+  status:{
     type: String,
     enum: ["active", "cancelled", "expired"],
     default: "active"
